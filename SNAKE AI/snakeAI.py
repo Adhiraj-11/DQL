@@ -56,6 +56,9 @@ class SnakeAI:
         self.khaana()
         self.frame_iteration = 0
 
+
+
+
     def khaana(self):
         #doubt
         x_food = random.randint(0,(self.w-BLOCK_SIZE)//BLOCK_SIZE)*BLOCK_SIZE
@@ -99,6 +102,11 @@ class SnakeAI:
 
         return reward,haar_gye_aap,self.score
     
+
+
+
+
+
     def update_ui(self):
         self.display.fill(black)
         for pt in self.snake:
