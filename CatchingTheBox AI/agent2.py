@@ -16,23 +16,53 @@ class Agent:
         self.epsilon = 0 # Randomness
         self.gamma = 0.9 # discount rate
         self.memory = deque(maxlen=MAX_MEMORY) # popleft()
-        self.model = linear_qnet(5,256,2) 
+        self.model = linear_qnet(11,256,3) 
         self.trainer = Qtrainer(self.model,lr=LR,gamma=self.gamma)
 
     def get_state(self,game):
 
         dir_l = game.direction == Direction.LEFT
-        dir_r = game.direction == Direction.RIGHT
+        dir_r = game.direction == Direction.RIGHT #HERE
+        dir_s = game.direction == Direction.STAND
+        paddle_speed = 5
+        box_speed = 3
+        # paddle_center = game.paddle_x + game.paddle_width // 2
+        # box_center = game.box.x + game.box_width // 2 
 
-        dist = game.paddle_x - game.box.x
+        # dist_x = abs(paddle_center - box_center)
+
+        dist_x = abs(game.paddle_x - game.box.x)
+        dist_y = game.paddle_y - game.box.y
+
+        dist_diag = np.sqrt(dist_x**2 + dist_y**2)
+        
+        max_distance = np.sqrt(game.w**2 + game.h**2)
+
+        # Set the proximity threshold as a fraction of the max distance
+        proximity_threshold = 0.1 * max_distance  # Adjust the fraction as needed
+        proximity = 0
+        if dist_diag <= proximity_threshold:
+            proximity = 1
+        allignment = 0
+        if dist_x <= 20:
+            allignment = 1
 
         state = [
             # Move Direction
             dir_l,
             dir_r,
+            dir_s,
 
             #distance between the paddle and the ball in horizontal axis
-            dist,
+            dist_x,
+            dist_y,
+            dist_diag,
+            
+
+            allignment,
+
+            paddle_speed,
+            box_speed,
 
             game.box.x < game.paddle_x, # box is in left
             game.box.x > game.paddle_x, # box is in right
@@ -55,12 +85,12 @@ class Agent:
     def train_short_memory(self,state,action,reward,next_state,done):
         self.trainer.train_step(state,action,reward,next_state,done)
 
-    def get_action(self,state):
+    def get_action(self,state): #HERE
         # random moves: tradeoff explotation / exploitation
-        self.epsilon = 80 - self.n_game
-        final_move = [0,0]
+        self.epsilon = 100 - self.n_game
+        final_move = [0,0,0]
         if(random.randint(0,200)<self.epsilon):
-            move = random.randint(0,1)
+            move = random.randint(0,2)
             final_move[move]= 1
         else:
             state0 = torch.tensor(state,dtype=torch.float)
@@ -72,14 +102,12 @@ class Agent:
 
 
 def train():
-    plot_scores = []
-    plot_mean_scores = []
-    total_score = 0
     record = 0
     agent = Agent()
     game = BOX()
     while True:
-        
+        # print(game.paddle_x)
+        # print(game.box.x)
         state_old = agent.get_state(game)
         final_move = agent.get_action(state_old)
         
@@ -88,9 +116,11 @@ def train():
 
         agent.train_short_memory(state_old,final_move,reward,state_new,done)
         agent.remember(state_old,final_move,reward,state_new,done)
+        #print(state_old)
         
 
         if done:
+            #print(state_old)
             game.reset()
             agent.n_game += 1
             agent.train_long_memory()

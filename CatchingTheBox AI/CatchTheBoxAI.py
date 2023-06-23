@@ -12,6 +12,7 @@ score_font = pygame.font.SysFont("comicsansms", 20)
 class Direction(Enum):
     RIGHT = 1
     LEFT = 2
+    STAND = 3
     
 Point = namedtuple('Point','x,y')
 blue = (0, 0, 255)
@@ -19,8 +20,8 @@ red = (255, 0, 0)
 green = (0, 255, 0)
 black = (0, 0, 0)
 
-window_width = 800
-window_height = 600
+window_width = 400
+window_height = 300
 
 # Define the paddle properties
 paddle_width = 50
@@ -42,6 +43,7 @@ class BOX:
     def __init__(self,w = window_width,h = window_height):
         self.w = w
         self.h = h
+
 
         self.display = pygame.display.set_mode((self.w,self.h))
         pygame.display.set_caption("Catch Box Game")
@@ -96,6 +98,9 @@ class BOX:
             game_over = False
             reward = 1
             self.generate_box()
+        
+        if (abs(self.paddle_x - self.box.x)) <= 10:
+            reward = 0.5
 
         self.update_ui()
         self.tiktok.tick(30)
@@ -113,22 +118,27 @@ class BOX:
         pygame.display.flip()
 
     def move(self,action):
-        clock_wise = [Direction.RIGHT,Direction.LEFT]
+        clock_wise = [Direction.RIGHT,Direction.LEFT,Direction.STAND]
 
         idx = clock_wise.index(self.direction)
 
-        if np.array_equal(action,[1,0]):
+        if np.array_equal(action,[1,0,0]):
             new_dir = clock_wise[idx]
-        else:
-            next_idx = (idx - 1) % 2
+        elif np.array_equal(action,[0,1,0]):
+            next_idx = (idx + 1) % 3
             new_dir = clock_wise[next_idx] 
-        self.direction = new_dir
+        else:
+            next_idx = (idx - 1) % 3
+            new_dir = clock_wise[next_idx]
 
+        self.direction = new_dir
         
         if(self.direction == Direction.RIGHT and self.paddle_x < window_width - paddle_width):
             self.paddle_x += paddle_speed
         elif(self.direction == Direction.LEFT and self.paddle_x > 0):
             self.paddle_x -= paddle_speed
+        elif(self.direction == Direction.STAND):
+            self.paddle_x += 0
         
         
     def Paddle(self,x,y,w,h,speed):
