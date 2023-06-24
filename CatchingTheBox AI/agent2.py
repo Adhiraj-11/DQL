@@ -9,14 +9,28 @@ from model import linear_qnet, Qtrainer
 MAX_MEMORY = 100000
 BATCH_SIZE = 1000
 LR = 0.001
+class RandomNumberGenerator:
+    def __init__(self):
+        self.previous_number = None
+        self.count = 0
+
+    def generate_same_number(self):
+        
+        if self.count == 0:
+            self.previous_number = random.randint(0, 2)
+            self.count = 5
+            
+        self.count -= 1
+        return self.previous_number
 
 class Agent:
     def __init__(self):
+        self.rng = RandomNumberGenerator()
         self.n_game = 0
         self.epsilon = 0 # Randomness
         self.gamma = 0.9 # discount rate
         self.memory = deque(maxlen=MAX_MEMORY) # popleft()
-        self.model = linear_qnet(11,256,3) 
+        self.model = linear_qnet(13,256,3) 
         self.trainer = Qtrainer(self.model,lr=LR,gamma=self.gamma)
 
     def get_state(self,game):
@@ -33,7 +47,8 @@ class Agent:
 
         dist_x = abs(game.paddle_x - game.box.x)
         dist_y = game.paddle_y - game.box.y
-
+        paddle_x = game.paddle_x
+        box_x = game.box.x
         dist_diag = np.sqrt(dist_x**2 + dist_y**2)
         
         max_distance = np.sqrt(game.w**2 + game.h**2)
@@ -44,7 +59,7 @@ class Agent:
         if dist_diag <= proximity_threshold:
             proximity = 1
         allignment = 0
-        if dist_x <= 20:
+        if dist_x <= 10:
             allignment = 1
 
         state = [
@@ -52,6 +67,9 @@ class Agent:
             dir_l,
             dir_r,
             dir_s,
+
+            paddle_x,
+            box_x,
 
             #distance between the paddle and the ball in horizontal axis
             dist_x,
@@ -85,21 +103,33 @@ class Agent:
     def train_short_memory(self,state,action,reward,next_state,done):
         self.trainer.train_step(state,action,reward,next_state,done)
 
+    
+    
+    
     def get_action(self,state): #HERE
         # random moves: tradeoff explotation / exploitation
-        self.epsilon = 100 - self.n_game
+        #self.epsilon = 500- self.n_game * 2  # Higher initial epsilon value
+        #final_move = [0, 0, 0]
+        self.epsilon = 80 - self.n_game
         final_move = [0,0,0]
         if(random.randint(0,200)<self.epsilon):
-            move = random.randint(0,2)
+        #if(self.epsilon > 0):
+            
+            move = self.rng.generate_same_number() #random.randint(0,2)
+            # print(self.rng.count)
+            # print(move)
             final_move[move]= 1
+            
         else:
+            # print("prediction")
             state0 = torch.tensor(state,dtype=torch.float)
             prediction = self.model(state0) # prediction by model 
             move = torch.argmax(prediction).item()
             final_move[move]=1 
         return final_move
 
-
+    
+        
 
 def train():
     record = 0

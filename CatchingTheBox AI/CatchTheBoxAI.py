@@ -28,7 +28,7 @@ paddle_width = 50
 paddle_height = 10
 paddle_x = window_width // 2 - paddle_width // 2
 paddle_y = window_height - 50
-paddle_speed = 5
+paddle_speed = 4
 
 score = 0
 
@@ -87,20 +87,30 @@ class BOX:
         game_over = False
 
         if(self.missed_the_box()):
+            print("missed reward")
             game_over = True
             reward = -1
             # self.reset()
             return reward,game_over,self.score
         
-        if(self.box.y + self.box_height >= self.paddle_y
-        and self.paddle_x <= self.box.x + self.box_width <= self.paddle_x + self.paddle_width):
+        # if(self.box.y + self.box_height >= self.paddle_y
+        # and self.paddle_x <= self.box.x + self.box_width <= self.paddle_x + self.paddle_width):
+        if (self.box.y + self.box_height >= self.paddle_y
+                and self.paddle_x <= self.box.x + self.box_width <= self.paddle_x + self.paddle_width or
+                self.box.y + self.box_height >= self.paddle_y
+                and self.paddle_x <= self.box.x + self.box_width // 2 <= self.paddle_x + self.paddle_width
+                )  :
+            print("caught reward")
             self.score += 1
             game_over = False
             reward = 1
             self.generate_box()
         
-        if (abs(self.paddle_x - self.box.x)) <= 10:
-            reward = 0.5
+        if abs(self.paddle_x - self.box.x) <= 12:
+            print("close reward")
+            reward = 1
+        else:
+            reward = -1
 
         self.update_ui()
         self.tiktok.tick(30)
@@ -133,9 +143,9 @@ class BOX:
 
         self.direction = new_dir
         
-        if(self.direction == Direction.RIGHT and self.paddle_x < window_width - paddle_width):
+        if(self.direction == Direction.RIGHT):
             self.paddle_x += paddle_speed
-        elif(self.direction == Direction.LEFT and self.paddle_x > 0):
+        elif(self.direction == Direction.LEFT):
             self.paddle_x -= paddle_speed
         elif(self.direction == Direction.STAND):
             self.paddle_x += 0
@@ -152,7 +162,8 @@ class BOX:
     def missed_the_box(self):
         if self.box.y + self.box_height >= window_height:
             return True
-       
+        if (self.paddle_x > window_width - paddle_width or self.paddle_x < 0):
+            return True
         return False
 
         

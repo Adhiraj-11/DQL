@@ -51,12 +51,12 @@ while running:
 
   
     if (
-        object_y + object_height >= paddle_y
-        and paddle_x <= object_x + object_width <= paddle_x + paddle_width
-    ):
-    
+    object_y + object_height >= paddle_y
+    and paddle_x <= object_x + object_width // 2 <= paddle_x + paddle_width
+        ):
         object_x = random.randint(0, window_width - object_width)
         object_y = 0
+
 
 
     if object_y + object_height >= window_height:
